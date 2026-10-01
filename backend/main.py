@@ -1,9 +1,16 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import pandas as pd
 import joblib
 
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+BACKEND_DIR = BASE_DIR / "backend"
+FRONTEND_DIR = BASE_DIR / "frontend"
 
 # ============================================================
 # FASTAPI APPLICATION
@@ -12,7 +19,7 @@ import joblib
 app = FastAPI(
     title="Credit Card Fraud Detection API",
     description="AI-based Credit Card Fraud Detection using Random Forest",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 
@@ -25,7 +32,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
 
@@ -34,15 +41,12 @@ app.add_middleware(
 # ============================================================
 
 try:
-
-    model = joblib.load("model.pkl")
-
+    model_path = BACKEND_DIR / "model.pkl"
+    model = joblib.load(model_path)
     print("Random Forest model loaded successfully!")
 
 except Exception as e:
-
     model = None
-
     print("Error loading model:")
     print(e)
 
@@ -52,7 +56,6 @@ except Exception as e:
 # ============================================================
 
 class Transaction(BaseModel):
-
     Time: float
 
     V1: float
@@ -76,11 +79,10 @@ class Transaction(BaseModel):
 
 @app.get("/")
 def home():
-
     return {
         "message": "Credit Card Fraud Detection API",
         "status": "running",
-        "model": "Random Forest"
+        "model": "Random Forest",
     }
 
 
@@ -90,21 +92,17 @@ def home():
 
 @app.get("/health")
 def health():
-
     if model is not None:
-
         return {
             "status": "healthy",
             "model_loaded": True,
-            "model": "Random Forest"
+            "model": "Random Forest",
         }
 
-    else:
-
-        return {
-            "status": "error",
-            "model_loaded": False
-        }
+    return {
+        "status": "error",
+        "model_loaded": False,
+    }
 
 
 # ============================================================
@@ -113,81 +111,45 @@ def health():
 
 @app.post("/predict")
 def predict(transaction: Transaction):
-
     if model is None:
-
         return {
             "status": "error",
-            "message": "Model is not loaded"
+            "message": "Model is not loaded",
         }
 
-
-    # --------------------------------------------------------
-    # Convert input into DataFrame
-    # --------------------------------------------------------
-
-    data = pd.DataFrame([{
-
-        "Time": transaction.Time,
-
-        "V1": transaction.V1,
-        "V2": transaction.V2,
-        "V3": transaction.V3,
-        "V4": transaction.V4,
-        "V5": transaction.V5,
-
-        "V6": transaction.V6,
-        "V7": transaction.V7,
-        "V8": transaction.V8,
-        "V9": transaction.V9,
-        "V10": transaction.V10,
-
-        "Amount": transaction.Amount
-
-    }])
-
-
-    # --------------------------------------------------------
-    # Random Forest Prediction
-    # --------------------------------------------------------
+    data = pd.DataFrame([
+        {
+            "Time": transaction.Time,
+            "V1": transaction.V1,
+            "V2": transaction.V2,
+            "V3": transaction.V3,
+            "V4": transaction.V4,
+            "V5": transaction.V5,
+            "V6": transaction.V6,
+            "V7": transaction.V7,
+            "V8": transaction.V8,
+            "V9": transaction.V9,
+            "V10": transaction.V10,
+            "Amount": transaction.Amount,
+        }
+    ])
 
     prediction = model.predict(data)
+    probability = model.predict_proba(data)[0][1] * 100
 
-    probability = model.predict_proba(data)
-
-
-    # Probability of fraud
-    fraud_probability = probability[0][1] * 100
-
-
-    # --------------------------------------------------------
-    # Result
-    # --------------------------------------------------------
-
-    if prediction[0] == 1:
-
-        result = "FRAUDULENT"
-
-    else:
-
-        result = "LEGITIMATE"
-
-
-    # --------------------------------------------------------
-    # Return JSON
-    # --------------------------------------------------------
+    result = "FRAUDULENT" if prediction[0] == 1 else "LEGITIMATE"
 
     return {
-
         "status": "success",
-
         "prediction": int(prediction[0]),
-
         "result": result,
-
-        "fraud_probability": round(
-            float(fraud_probability),
-            2
-        )
-
+        "fraud_probability": round(float(probability), 2),
     }
+
+
+# ============================================================
+# SERVE FRONTEND (single deployment)
+# ============================================================
+
+if FRONTEND_DIR.exists():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
