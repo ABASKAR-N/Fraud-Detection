@@ -1,10 +1,690 @@
-# Backend
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+<!DOCTYPE html>
+<html lang="en">
 
-# Optional: set this when frontend and backend are served from different origins
-# FRONTEND_URL=http://localhost:3000
-# API_URL=http://127.0.0.1:8000
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="api-url" content="">
 
-# Optional: for custom frontend integration
-# WINDOW_API_URL=https://your-backend-domain.com
+    <title>FraudShield AI</title>
 
+    <link rel="stylesheet" href="index.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- ================= SIDEBAR ================= -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <div class="logo-box">FS</div>
+
+            <div>
+                <h1>FraudShield</h1>
+                <p>AI SECURITY</p>
+            </div>
+        </div>
+
+        <nav>
+
+            <a href="#dashboard" class="nav-link active">
+                <span>⌂</span>
+                Dashboard
+            </a>
+
+            <a href="#analyzer" class="nav-link">
+                <span>◉</span>
+                Transaction Analyzer
+            </a>
+
+            <a href="#history" class="nav-link">
+                <span>◷</span>
+                Prediction History
+            </a>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <div class="api-status">
+
+                <span id="apiDot" class="status-dot"></span>
+
+                <div>
+                    <strong id="apiStatus">
+                        Checking...
+                    </strong>
+
+                    <small>
+                        FastAPI Server
+                    </small>
+                </div>
+
+            </div>
+
+            <p>Random Forest • AI Model</p>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ================= MAIN ================= -->
+
+    <main class="main">
+
+        <!-- HEADER -->
+
+        <header class="header">
+
+            <div>
+
+                <p class="label">
+                    AI-POWERED SECURITY PLATFORM
+                </p>
+
+                <h2>
+                    Fraud Detection Dashboard
+                </h2>
+
+                <p class="description">
+                    Analyze credit card transactions using machine learning.
+                </p>
+
+            </div>
+
+            <div class="live">
+
+                <span></span>
+
+                LIVE
+
+            </div>
+
+        </header>
+
+
+        <!-- ================= STAT CARDS ================= -->
+
+        <section id="dashboard" class="stats">
+
+            <div class="stat-card green">
+
+                <div class="stat-icon">
+                    ✓
+                </div>
+
+                <div>
+
+                    <p>Real-Time Fraud Detection</p>
+
+                    <h3 id="systemStatus">
+                        Online
+                    </h3>
+
+                    <small>
+                        Monitoring active
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-card blue">
+
+                <div class="stat-icon">
+                    ◎
+                </div>
+
+                <div>
+
+                    <p>Classification</p>
+
+                    <h3>
+                        Binary
+                    </h3>
+
+                    <small>
+                        Legitimate / Fraud
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-card purple">
+
+                <div class="stat-icon">
+                    AI
+                </div>
+
+                <div>
+
+                    <p>Active Model</p>
+
+                    <h3>
+                        Random Forest
+                    </h3>
+
+                    <small>
+                        150 estimators
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-card orange">
+
+                <div class="stat-icon">
+                    #
+                </div>
+
+                <div>
+
+                    <p>Transactions</p>
+
+                    <h3 id="transactionCount">
+                        0
+                    </h3>
+
+                    <small>
+                        Analyzed
+                    </small>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= ANALYZER ================= -->
+
+        <section id="analyzer" class="content-grid">
+
+
+            <!-- INPUT PANEL -->
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <p class="label">
+                            TRANSACTION ANALYZER
+                        </p>
+
+                        <h3>
+                            Enter Transaction Data
+                        </h3>
+
+                    </div>
+
+                    <button
+                        class="sample-btn"
+                        onclick="loadSample()">
+
+                        Load Sample
+
+                    </button>
+
+                </div>
+
+
+                <form id="fraudForm">
+
+
+                    <div class="form-grid">
+
+                        <div class="input-group">
+
+                            <label>
+                                Time
+                            </label>
+
+                            <input
+                                id="Time"
+                                type="number"
+                                step="any"
+                                value="50000"
+                                required>
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>
+                                Amount
+                            </label>
+
+                            <input
+                                id="Amount"
+                                type="number"
+                                step="any"
+                                value="50"
+                                required>
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>V1</label>
+
+                            <input
+                                id="V1"
+                                type="number"
+                                step="any"
+                                value="0.5"
+                                required>
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>V2</label>
+
+                            <input
+                                id="V2"
+                                type="number"
+                                step="any"
+                                value="0.2"
+                                required>
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>V3</label>
+
+                            <input
+                                id="V3"
+                                type="number"
+                                step="any"
+                                value="0.8"
+                                required>
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>V4</label>
+
+                            <input
+                                id="V4"
+                                type="number"
+                                step="any"
+                                value="-0.3"
+                                required>
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>V5</label>
+
+                            <input
+                                id="V5"
+                                type="number"
+                                step="any"
+                                value="0.4"
+                                required>
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>V6</label>
+
+                            <input
+                                id="V6"
+                                type="number"
+                                step="any"
+                                value="-0.2"
+                                required>
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>V7</label>
+
+                            <input
+                                id="V7"
+                                type="number"
+                                step="any"
+                                value="0.6"
+                                required>
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>V8</label>
+
+                            <input
+                                id="V8"
+                                type="number"
+                                step="any"
+                                value="0.1"
+                                required>
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>V9</label>
+
+                            <input
+                                id="V9"
+                                type="number"
+                                step="any"
+                                value="0.3"
+                                required>
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>V10</label>
+
+                            <input
+                                id="V10"
+                                type="number"
+                                step="any"
+                                value="-0.1"
+                                required>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="buttons">
+
+                        <button
+                            type="button"
+                            class="reset-btn"
+                            onclick="resetForm()">
+
+                            Reset
+
+                        </button>
+
+
+                        <button
+                            type="submit"
+                            class="analyze-btn"
+                            id="analyzeButton">
+
+                            Analyze Transaction
+                            <span>→</span>
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+
+            <!-- RESULT PANEL -->
+
+            <div class="card result-card">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <p class="label">
+                            AI DECISION
+                        </p>
+
+                        <h3>
+                            Risk Assessment
+                        </h3>
+
+                    </div>
+
+                    <span class="model">
+                        RF MODEL
+                    </span>
+
+                </div>
+
+
+                <!-- DEFAULT -->
+
+                <div id="defaultResult" class="default-result">
+
+                    <div class="shield">
+                        ✓
+                    </div>
+
+                    <h3>
+                        Ready to Analyze
+                    </h3>
+
+                    <p>
+                        Submit a transaction to receive
+                        an AI-powered fraud assessment.
+                    </p>
+
+                </div>
+
+
+                <!-- RESULT -->
+
+                <div
+                    id="resultContainer"
+                    class="result-container hidden">
+
+                    <div class="decision">
+
+                        <div>
+
+                            <p>
+                                Transaction Decision
+                            </p>
+
+                            <h2 id="resultText">
+                                LEGITIMATE
+                            </h2>
+
+                        </div>
+
+                        <span
+                            id="riskBadge"
+                            class="risk-badge">
+
+                            LOW RISK
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="probability">
+
+                        <div class="probability-header">
+
+                            <span>
+                                Fraud Probability
+                            </span>
+
+                            <strong id="probability">
+                                0%
+                            </strong>
+
+                        </div>
+
+
+                        <div class="progress">
+
+                            <div
+                                id="progressBar">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="result-details">
+
+                        <div>
+
+                            <span>
+                                Prediction
+                            </span>
+
+                            <strong id="prediction">
+                                0
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Model
+                            </span>
+
+                            <strong>
+                                Random Forest
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= ANALYTICS ================= -->
+
+        <section class="bottom-grid">
+
+
+            <div class="card chart-card">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <p class="label">
+                            SESSION ANALYTICS
+                        </p>
+
+                        <h3>
+                            Detection Overview
+                        </h3>
+
+                    </div>
+
+                </div>
+
+                <div class="chart-container">
+
+                    <canvas id="fraudChart">
+                    </canvas>
+
+                </div>
+
+            </div>
+
+
+            <!-- HISTORY -->
+
+            <div
+                id="history"
+                class="card">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <p class="label">
+                            RECENT ACTIVITY
+                        </p>
+
+                        <h3>
+                            Prediction History
+                        </h3>
+
+                    </div>
+
+                    <button
+                        class="clear-btn"
+                        onclick="clearHistory()">
+
+                        Clear
+
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="historyList"
+                    class="history">
+
+                    <div class="empty">
+                        No predictions yet.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <footer>
+
+            <span>
+                FraudShield AI
+            </span>
+
+            <span>
+                FastAPI • Random Forest • Real-Time Analysis
+            </span>
+
+        </footer>
+
+    </main>
+
+</div>
+
+
+<script src="index.js"></script>
+
+</body>
+</html>
