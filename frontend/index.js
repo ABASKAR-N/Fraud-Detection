@@ -1,355 +1,166 @@
-// ==========================================
-// FASTAPI URL
-// ==========================================
+from pathlib import Path
+import os
 
-const API_URL =
-    window.__API_URL__ ||
-    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-        ? "http://127.0.0.1:8000"
-        : window.location.origin);
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+import pandas as pd
+import joblib
 
-// ==========================================
-// VARIABLES
-// ==========================================
 
-let transactionCount = 0;
-let history = [];
-let fraudChart;
+BASE_DIR = Path(__file__).resolve().parent.parent
+BACKEND_DIR = BASE_DIR / "backend"
+FRONTEND_DIR = BASE_DIR / "frontend"
 
-// ==========================================
-// SAMPLE DATA
-// ==========================================
+# ============================================================
+# ENVIRONMENT CONFIG
+# ============================================================
 
-const normalSample = {
-    Time: 50000,
-    V1: 0.5,
-    V2: 0.2,
-    V3: 0.8,
-    V4: -0.3,
-    V5: 0.4,
-    V6: -0.2,
-    V7: 0.6,
-    V8: 0.1,
-    V9: 0.3,
-    V10: -0.1,
-    Amount: 50
-};
+allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "*")
+if allowed_origins == "*":
+    cors_origins = ["*"]
+else:
+    cors_origins = [origin.strip() for origin in allowed_origins.split(",") if origin.strip()]
 
-const suspiciousSample = {
-    Time: 150000,
-    V1: -3.2,
-    V2: 3.1,
-    V3: -2.8,
-    V4: 3.0,
-    V5: -2.5,
-    V6: 1.8,
-    V7: -2.9,
-    V8: 2.0,
-    V9: -2.4,
-    V10: 2.8,
-    Amount: 1500
-};
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
 
-// ==========================================
-// LOAD SAMPLE
-// ==========================================
+app = FastAPI(
+    title="Credit Card Fraud Detection API",
+    description="AI-based Credit Card Fraud Detection using Random Forest",
+    version="1.0.0",
+)
 
-function loadSample() {
-    const sample = Math.random() > 0.5 ? normalSample : suspiciousSample;
 
-    for (const key in sample) {
-        const input = document.getElementById(key);
-        if (input) {
-            input.value = sample[key];
-        }
+# ============================================================
+# CORS
+# ============================================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ============================================================
+# LOAD TRAINED MODEL
+# ============================================================
+
+try:
+    model_path = BACKEND_DIR / "model.pkl"
+    model = joblib.load(model_path)
+    print("Random Forest model loaded successfully!")
+
+except Exception as e:
+    model = None
+    print("Error loading model:")
+    print(e)
+
+
+# ============================================================
+# INPUT DATA MODEL
+# ============================================================
+
+class Transaction(BaseModel):
+    Time: float
+
+    V1: float
+    V2: float
+    V3: float
+    V4: float
+    V5: float
+
+    V6: float
+    V7: float
+    V8: float
+    V9: float
+    V10: float
+
+    Amount: float
+
+
+# ============================================================
+# HOME API
+# ============================================================
+
+@app.get("/")
+def home():
+    return {
+        "message": "Credit Card Fraud Detection API",
+        "status": "running",
+        "model": "Random Forest",
     }
-}
 
-// ==========================================
-// GET FORM DATA
-// ==========================================
 
-function getTransactionData() {
-    const fields = [
-        "Time",
-        "V1",
-        "V2",
-        "V3",
-        "V4",
-        "V5",
-        "V6",
-        "V7",
-        "V8",
-        "V9",
-        "V10",
-        "Amount"
-    ];
+# ============================================================
+# HEALTH CHECK
+# ============================================================
 
-    const data = {};
-
-    fields.forEach(field => {
-        data[field] = Number(document.getElementById(field).value);
-    });
-
-    return data;
-}
-
-// ==========================================
-// CHECK FASTAPI
-// ==========================================
-
-async function checkBackend() {
-    try {
-        const response = await fetch(API_URL + "/health");
-
-        if (!response.ok) {
-            throw new Error("Backend unavailable");
-        }
-
-        document.getElementById("apiStatus").textContent = "API Connected";
-        document.getElementById("systemStatus").textContent = "Online";
-        document.getElementById("apiDot").style.background = "#35d399";
-    }
-    catch (error) {
-        document.getElementById("apiStatus").textContent = "API Offline";
-        document.getElementById("systemStatus").textContent = "Offline";
-        document.getElementById("apiDot").style.background = "#ff5d6c";
-    }
-}
-
-// ==========================================
-// PREDICTION
-// ==========================================
-
-async function predictTransaction() {
-    const button = document.getElementById("analyzeButton");
-    button.disabled = true;
-    button.innerHTML = "Analyzing...";
-
-    const data = getTransactionData();
-
-    try {
-        const response = await fetch(API_URL + "/predict", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-        });
-
-        if (!response.ok) {
-            throw new Error("Prediction failed");
+@app.get("/health")
+def health():
+    if model is not None:
+        return {
+            "status": "healthy",
+            "model_loaded": True,
+            "model": "Random Forest",
         }
 
-        const result = await response.json();
-        displayResult(result);
-    }
-    catch (error) {
-        alert(
-            "Cannot connect to FastAPI.\n\n" +
-            "Start your backend using:\n" +
-            "python -m uvicorn backend.main:app --reload"
-        );
-        console.error(error);
+    return {
+        "status": "error",
+        "model_loaded": False,
     }
 
-    button.disabled = false;
-    button.innerHTML = 'Analyze Transaction <span>→</span>';
-}
 
-// ==========================================
-// DISPLAY RESULT
-// ==========================================
+# ============================================================
+# PREDICTION API
+# ============================================================
 
-function displayResult(result) {
-    document.getElementById("defaultResult").classList.add("hidden");
-    document.getElementById("resultContainer").classList.remove("hidden");
-
-    const probability = Number(result.fraud_probability);
-    const isFraud = Number(result.prediction) === 1;
-
-    const resultText = document.getElementById("resultText");
-    const riskBadge = document.getElementById("riskBadge");
-
-    if (isFraud) {
-        resultText.textContent = "FRAUDULENT";
-        resultText.style.color = "#ff5d6c";
-    } else {
-        resultText.textContent = "LEGITIMATE";
-        resultText.style.color = "#35d399";
-    }
-
-    if (probability >= 70) {
-        riskBadge.textContent = "HIGH RISK";
-        riskBadge.style.color = "#ff5d6c";
-        riskBadge.style.background = "#29131a";
-    } else if (probability >= 35) {
-        riskBadge.textContent = "MEDIUM RISK";
-        riskBadge.style.color = "#ffb454";
-        riskBadge.style.background = "#2a2112";
-    } else {
-        riskBadge.textContent = "LOW RISK";
-        riskBadge.style.color = "#35d399";
-        riskBadge.style.background = "#10251f";
-    }
-
-    document.getElementById("probability").textContent = probability.toFixed(2) + "%";
-    document.getElementById("progressBar").style.width = Math.min(probability, 100) + "%";
-    document.getElementById("prediction").textContent = result.prediction;
-
-    transactionCount++;
-    document.getElementById("transactionCount").textContent = transactionCount;
-
-    addHistory(isFraud, probability);
-    updateChart();
-}
-
-// ==========================================
-// HISTORY
-// ==========================================
-
-function addHistory(isFraud, probability) {
-    const item = {
-        result: isFraud ? "FRAUDULENT" : "LEGITIMATE",
-        probability: probability,
-        time: new Date().toLocaleTimeString()
-    };
-
-    history.unshift(item);
-
-    if (history.length > 7) {
-        history.pop();
-    }
-
-    const historyList = document.getElementById("historyList");
-    historyList.innerHTML = "";
-
-    history.forEach(item => {
-        const row = document.createElement("div");
-        row.className = "history-item";
-
-        row.innerHTML = `
-            <div>
-                <strong>${item.result}</strong>
-                <small>${item.time}</small>
-            </div>
-            <div class="history-right">
-                <strong>${item.probability.toFixed(2)}%</strong>
-                <small>Fraud probability</small>
-            </div>
-        `;
-
-        historyList.appendChild(row);
-    });
-}
-
-// ==========================================
-// CLEAR HISTORY
-// ==========================================
-
-function clearHistory() {
-    history = [];
-
-    document.getElementById("historyList").innerHTML = `
-        <div class="empty">
-            No predictions yet.
-        </div>
-    `;
-
-    updateChart();
-}
-
-// ==========================================
-// RESET FORM
-// ==========================================
-
-function resetForm() {
-    for (const key in normalSample) {
-        const input = document.getElementById(key);
-        if (input) {
-            input.value = normalSample[key];
+@app.post("/predict")
+def predict(transaction: Transaction):
+    if model is None:
+        return {
+            "status": "error",
+            "message": "Model is not loaded",
         }
+
+    data = pd.DataFrame([
+        {
+            "Time": transaction.Time,
+            "V1": transaction.V1,
+            "V2": transaction.V2,
+            "V3": transaction.V3,
+            "V4": transaction.V4,
+            "V5": transaction.V5,
+            "V6": transaction.V6,
+            "V7": transaction.V7,
+            "V8": transaction.V8,
+            "V9": transaction.V9,
+            "V10": transaction.V10,
+            "Amount": transaction.Amount,
+        }
+    ])
+
+    prediction = model.predict(data)
+    probability = model.predict_proba(data)[0][1] * 100
+
+    result = "FRAUDULENT" if prediction[0] == 1 else "LEGITIMATE"
+
+    return {
+        "status": "success",
+        "prediction": int(prediction[0]),
+        "result": result,
+        "fraud_probability": round(float(probability), 2),
     }
 
-    document.getElementById("resultContainer").classList.add("hidden");
-    document.getElementById("defaultResult").classList.remove("hidden");
 
-    document.getElementById("probability").textContent = "0%";
-    document.getElementById("progressBar").style.width = "0%";
-}
+# ============================================================
+# SERVE FRONTEND (single deployment)
+# ============================================================
 
-// ==========================================
-// CHART
-// ==========================================
-
-function createChart() {
-    const canvas = document.getElementById("fraudChart");
-
-    fraudChart = new Chart(canvas, {
-        type: "doughnut",
-        data: {
-            labels: ["Legitimate", "Fraudulent"],
-            datasets: [{
-                data: [0, 0],
-                backgroundColor: ["#35d399", "#ff5d6c"],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: "72%",
-            plugins: {
-                legend: {
-                    position: "bottom",
-                    labels: {
-                        color: getComputedStyle(document.body).getPropertyValue("--muted"),
-                        boxWidth: 10,
-                        font: {
-                            size: 10
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-
-// ==========================================
-// UPDATE CHART
-// ==========================================
-
-function updateChart() {
-    let fraud = 0;
-    let legitimate = 0;
-
-    history.forEach(item => {
-        if (item.result === "FRAUDULENT") {
-            fraud++;
-        } else {
-            legitimate++;
-        }
-    });
-
-    fraudChart.data.datasets[0].data = [legitimate, fraud];
-    fraudChart.update();
-}
-
-// ==========================================
-// FORM SUBMIT
-// ==========================================
-
-document.getElementById("fraudForm").addEventListener("submit", function (event) {
-    event.preventDefault();
-    predictTransaction();
-});
-
-// ==========================================
-// START
-// ==========================================
-
-createChart();
-checkBackend();
-
-// Check backend every 15 seconds
-setInterval(checkBackend, 15000);
+if FRONTEND_DIR.exists():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
