@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +12,16 @@ import joblib
 BASE_DIR = Path(__file__).resolve().parent.parent
 BACKEND_DIR = BASE_DIR / "backend"
 FRONTEND_DIR = BASE_DIR / "frontend"
+
+# ============================================================
+# ENVIRONMENT CONFIG
+# ============================================================
+
+allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "*")
+if allowed_origins == "*":
+    cors_origins = ["*"]
+else:
+    cors_origins = [origin.strip() for origin in allowed_origins.split(",") if origin.strip()]
 
 # ============================================================
 # FASTAPI APPLICATION
@@ -29,7 +40,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -74,10 +85,10 @@ class Transaction(BaseModel):
 
 
 # ============================================================
-# HOME API
+# API ROUTES
 # ============================================================
 
-@app.get("/")
+@app.get("/api/")
 def home():
     return {
         "message": "Credit Card Fraud Detection API",
@@ -90,7 +101,7 @@ def home():
 # HEALTH CHECK
 # ============================================================
 
-@app.get("/health")
+@app.get("/api/health")
 def health():
     if model is not None:
         return {
@@ -109,7 +120,7 @@ def health():
 # PREDICTION API
 # ============================================================
 
-@app.post("/predict")
+@app.post("/api/predict")
 def predict(transaction: Transaction):
     if model is None:
         return {
@@ -148,7 +159,7 @@ def predict(transaction: Transaction):
 
 
 # ============================================================
-# SERVE FRONTEND (single deployment)
+# SERVE FRONTEND (static files at root)
 # ============================================================
 
 if FRONTEND_DIR.exists():
