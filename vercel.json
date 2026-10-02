@@ -1,0 +1,27 @@
+{
+  "buildCommand": "pip install -r requirements.txt",
+  "outputDirectory": ".",
+  "framework": "python",
+  "functions": {
+    "backend/main.py": {
+      "runtime": "python3.11"
+    }
+  },
+  "env": {
+    "PYTHONUNBUFFERED": "1"
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "api/backend.main"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
+    },
+    {
+      "source": "/",
+      "destination": "/frontend/index.html"
+    }
+  ]
+}
