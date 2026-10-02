@@ -44,3 +44,19 @@ cd Fraud-Detection
 python -m venv venv
 source venv/bin/activate   # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+## Usage
+```bash
+python app.py
+```
+Then open your browser and navigate to `http://localhost:8000`.
+
+## Deployment
+This application is deployed on Render: https://fraud-detection-11ar.onrender.com/
+
+## Model Performance
+The Random Forest model is trained on historical transaction data and achieves high accuracy in detecting fraudulent transactions.
+
+## License
+MIT License
